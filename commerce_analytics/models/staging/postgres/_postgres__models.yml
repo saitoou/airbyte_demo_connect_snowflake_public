@@ -1,0 +1,52 @@
+version: 2
+
+models:
+  - name: stg_postgres__customers
+    description: PostgreSQLの顧客データを分析用に整形したモデル
+
+    columns:
+      - name: customer_id
+        data_tests:
+          - not_null
+          - unique
+
+      - name: email
+        data_tests:
+          - not_null
+
+      - name: is_deleted
+        data_tests:
+          - not_null
+
+  - name: stg_postgres__orders
+    description: PostgreSQLの注文データを分析用に整形したモデル
+
+    columns:
+      - name: order_id
+        data_tests:
+          - not_null
+          - unique
+
+      - name: customer_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_postgres__customers')
+                field: customer_id
+
+      - name: order_status
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - pending
+                  - paid
+                  - shipped
+                  - completed
+                  - cancelled
+
+      - name: total_amount
+        data_tests:
+          - not_null

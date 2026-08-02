@@ -1,0 +1,16 @@
+version: 2
+
+sources:
+  - name: postgres
+    description: AirbyteによってpostgreSQLから同期されたRAWデータ
+    database: AIRBYTE_LAB_DB
+    schema: AIRBYTE_RAW
+
+    tables:
+      - name: customers
+        identifier: CUSTOMERS
+        description: PostgreSQLの顧客テーブル
+      
+      - name: orders
+        identifier: ORDERS
+        description: PostgreSQLの注文テーブル
