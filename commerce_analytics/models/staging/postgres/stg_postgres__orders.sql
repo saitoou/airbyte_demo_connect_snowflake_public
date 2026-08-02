@@ -1,3 +1,4 @@
+-- confirm test ci
 with source as (
 
   select *
