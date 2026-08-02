@@ -1,0 +1,101 @@
+name: dbt CD
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "commerce_analytics/**"
+      - "requirements-dbt.txt"
+      - ".github/workflows/dbt_cd.yml"
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: dbt-production
+  cancel-in-progress: false
+
+jobs:
+  dbt-cd:
+    name: Deploy dbt to production
+    runs-on: ubuntu-latest
+
+    # SnowflakeのOIDC Subjectにあるenvironment:prodと一致させる
+    environment: prod
+
+    env:
+      SNOWFLAKE_ACCOUNT: ${{ vars.SNOWFLAKE_ACCOUNT }}
+      SNOWFLAKE_USER: ${{ vars.SNOWFLAKE_USER }}
+      SNOWFLAKE_ROLE: ${{ vars.SNOWFLAKE_ROLE }}
+      SNOWFLAKE_WAREHOUSE: ${{ vars.SNOWFLAKE_WAREHOUSE }}
+      SNOWFLAKE_DATABASE: ${{ vars.SNOWFLAKE_DATABASE }}
+      SNOWFLAKE_SCHEMA: ${{ vars.SNOWFLAKE_SCHEMA }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements-dbt.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-dbt.txt
+          python -m pip check
+
+      - name: Authenticate to Snowflake with OIDC
+        uses: snowflakedb/snowflake-actions@v3
+        with:
+          use-oidc: true
+          cli-version: "3.16"
+
+      - name: Test Snowflake OIDC connection
+        run: snow connection test -x
+
+      - name: Create dbt production profile
+        run: |
+          mkdir -p ~/.dbt
+
+          cat > ~/.dbt/profiles.yml <<'YAML'
+          commerce_analytics:
+            target: prod
+
+            outputs:
+              prod:
+                type: snowflake
+                account: "{{ env_var('SNOWFLAKE_ACCOUNT') }}"
+                user: "{{ env_var('SNOWFLAKE_USER') }}"
+                role: "{{ env_var('SNOWFLAKE_ROLE') }}"
+                warehouse: "{{ env_var('SNOWFLAKE_WAREHOUSE') }}"
+                database: "{{ env_var('SNOWFLAKE_DATABASE') }}"
+                schema: "{{ env_var('SNOWFLAKE_SCHEMA') }}"
+
+                authenticator: workload_identity
+                workload_identity_provider: OIDC
+                token: "{{ env_var('SNOWFLAKE_TOKEN') }}"
+
+                threads: 4
+          YAML
+
+      - name: Parse dbt project
+        working-directory: commerce_analytics
+        run: dbt parse --target prod
+
+      - name: Test Snowflake connection
+        working-directory: commerce_analytics
+        run: dbt debug --target prod
+
+      - name: Deploy and test dbt project
+        working-directory: commerce_analytics
+        run: dbt build --target prod
