@@ -1,13 +1,13 @@
-name: dbt CI
+name: dbt CD
 
 on:
-  pull_request:
+  push:
     branches:
       - main
     paths:
       - "commerce_analytics/**"
       - "requirements-dbt.txt"
-      - ".github/workflows/dbt_*.yml"
+      - ".github/workflows/dbt_cd.yml"
 
   workflow_dispatch:
 
@@ -15,13 +15,17 @@ permissions:
   contents: read
   id-token: write
 
+concurrency:
+  group: dbt-production
+  cancel-in-progress: false
+
 jobs:
-  dbt-ci:
-    name: Lint and build dbt
+  dbt-cd:
+    name: Deploy dbt to production
     runs-on: ubuntu-latest
 
-    # Snowflakeに登録したOIDC Subjectのenvironment:ciと一致させる
-    environment: ci
+    # SnowflakeのOIDC Subjectにあるenvironment:prodと一致させる
+    environment: prod
 
     env:
       SNOWFLAKE_ACCOUNT: ${{ vars.SNOWFLAKE_ACCOUNT }}
@@ -55,20 +59,20 @@ jobs:
         with:
           use-oidc: true
           cli-version: "3.16"
-      
+
       - name: Test Snowflake OIDC connection
         run: snow connection test -x
 
-      - name: Create dbt CI profile
+      - name: Create dbt production profile
         run: |
           mkdir -p ~/.dbt
 
           cat > ~/.dbt/profiles.yml <<'YAML'
           commerce_analytics:
-            target: ci
+            target: prod
 
             outputs:
-              ci:
+              prod:
                 type: snowflake
                 account: "{{ env_var('SNOWFLAKE_ACCOUNT') }}"
                 user: "{{ env_var('SNOWFLAKE_USER') }}"
@@ -84,20 +88,14 @@ jobs:
                 threads: 4
           YAML
 
-      - name: Lint dbt SQL
-        working-directory: commerce_analytics
-        run: |
-          sqlfluff lint models tests \
-            --format github-annotation-native
-
       - name: Parse dbt project
         working-directory: commerce_analytics
-        run: dbt parse --target ci
+        run: dbt parse --target prod
 
       - name: Test Snowflake connection
         working-directory: commerce_analytics
-        run: dbt debug --target ci
+        run: dbt debug --target prod
 
-      - name: Build and test dbt project
+      - name: Deploy and test dbt project
         working-directory: commerce_analytics
-        run: dbt build --target ci
+        run: dbt build --target prod
