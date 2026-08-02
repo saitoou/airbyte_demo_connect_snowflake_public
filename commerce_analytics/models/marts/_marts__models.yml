@@ -1,0 +1,53 @@
+version: 2
+
+models:
+  - name: dim_customers
+    description: 顧客単位の分析用ディメンション。1行1顧客。
+
+    columns:
+      - name: customer_id
+        data_tests:
+          - not_null
+          - unique
+
+      - name: is_active
+        data_tests:
+          - not_null
+
+  - name: fct_orders
+    description: 注文単位のファクトテーブル。1行1注文。
+
+    columns:
+      - name: order_id
+        data_tests:
+          - not_null
+          - unique
+
+      - name: customer_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_customers')
+                field: customer_id
+
+      - name: recognized_order_amount
+        data_tests:
+          - not_null
+
+  - name: mart_daily_sales
+    description: 日別の注文・売上集計。1行1日。
+
+    columns:
+      - name: order_date
+        data_tests:
+          - not_null
+          - unique
+
+      - name: order_count
+        data_tests:
+          - not_null
+
+      - name: recognized_order_amount
+        data_tests:
+          - not_null
