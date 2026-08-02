@@ -1,0 +1,24 @@
+[sqlfluff]
+dialect = snowflake
+templater = dbt
+encoding = utf-8
+max_line_length = 100
+
+[sqlfluff:templater:dbt]
+project_dir = .
+profiles_dir = ~/.dbt
+profile = commerce_analytics
+target = dev
+
+[sqlfluff:indentation]
+tab_space_size = 2
+implicit_indents = allow
+
+[sqlfluff:rules:capitalisation.keywords]
+capitalisation_policy = lower
+
+[sqlfluff:rules:capitalisation.identifiers]
+capitalisation_policy = lower
+
+[sqlfluff:rules:references.keywords]
+ignore_words = email
