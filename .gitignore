@@ -1,4 +1,4 @@
 .env.secrets/
 .secrets/
 .venv/
-
+logs/
