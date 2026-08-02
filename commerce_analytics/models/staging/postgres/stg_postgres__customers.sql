@@ -16,9 +16,9 @@ renamed as (
     updated_at::timestamp_tz as updated_at,
     deleted_at::timestamp_tz as deleted_at,
 
-    deleted_at is not null as is_deleted,
+    _airbyte_extracted_at::timestamp_tz as airbyte_extracted_at,
 
-    _airbyte_extracted_at::timestamp_tz as airbyte_extracted_at
+    deleted_at is not null as is_deleted
 
   from source
 

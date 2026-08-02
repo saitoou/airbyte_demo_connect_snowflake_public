@@ -18,9 +18,9 @@ renamed as (
     updated_at::timestamp_tz as updated_at,
     cancelled_at::timestamp_tz as cancelled_at,
 
-    status = 'cancelled' as is_cancelled,
+    _airbyte_extracted_at::timestamp_tz as airbyte_extracted_at,
 
-    _airbyte_extracted_at::timestamp_tz as airbyte_extracted_at
+    status = 'cancelled' as is_cancelled
 
   from source
 
