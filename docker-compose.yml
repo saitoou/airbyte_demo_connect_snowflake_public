@@ -1,0 +1,32 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: commerce-postgres
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: airbyte_source_db
+      POSTGRES_USER: app_user
+      POSTGRES_PASSWORD: local-development-password
+      TZ: Asia/Tokyo
+
+    ports:
+      # Brew版PostgreSQLの5432との競合を避ける
+      - "5433:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U app_user -d airbyte_source_db"
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres_data:
