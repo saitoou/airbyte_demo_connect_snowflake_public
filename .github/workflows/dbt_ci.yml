@@ -7,7 +7,7 @@ on:
     paths:
       - "commerce_analytics/**"
       - "requirements-dbt.txt"
-      - ".github/workflows/dbt_ci.yml"
+      - ".github/workflows/dbt_*.yml"
 
   workflow_dispatch:
 
