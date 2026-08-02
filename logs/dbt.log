@@ -1,0 +1,115 @@
+[0m01:22:00.769336 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'start', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x102f40990>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x10603c390>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x10603c0d0>]}
+
+
+============================== 01:22:00.771864 | 2c383d0f-6d94-4115-8c77-28f9277b4452 ==============================
+[0m01:22:00.771864 [info ] [MainThread]: Running with dbt=1.12.0
+[0m01:22:00.772121 [debug] [MainThread]: running dbt with arguments {'cache_selected_only': 'False', 'send_anonymous_usage_stats': 'True', 'warn_error': 'None', 'introspect': 'True', 'empty': 'None', 'quiet': 'False', 'log_format': 'default', 'target_path': 'None', 'warn_error_options': 'WarnErrorOptionsV2(error=[], warn=[], silence=[])', 'invocation_command': 'dbt init commerce_analytics', 'use_colors': 'True', 'indirect_selection': 'eager', 'static_parser': 'True', 'write_json': 'True', 'fail_fast': 'False', 'profiles_dir': '/Users/chokoco/.dbt', 'debug': 'False', 'no_print': 'None', 'hints_enabled': 'True', 'log_cache_events': 'False', 'version_check': 'True', 'printer_width': '80', 'maximum_seed_size_mib': '1', 'partial_parse': 'True', 'log_path': 'logs', 'use_experimental_parser': 'False'}
+[0m01:22:00.780027 [debug] [MainThread]: Starter project path: /Users/chokoco/workspaces/PracProject/airbyte-101/.venv/lib/python3.11/site-packages/dbt/include/starter_project
+[0m01:22:00.782756 [info ] [MainThread]: Setting up your profile.
+[0m01:22:03.644178 [debug] [MainThread]: Snowflake adapter: Setting snowflake.connector to ERROR (file logging only)
+[0m01:22:03.644398 [debug] [MainThread]: Snowflake adapter: Setting botocore to ERROR (file logging only)
+[0m01:22:03.644521 [debug] [MainThread]: Snowflake adapter: Setting boto3 to ERROR (file logging only)
+[0m01:23:37.051484 [info ] [MainThread]: Profile commerce_analytics written to /Users/chokoco/.dbt/profiles.yml using target's profile_template.yml and your supplied values.
+[0m01:23:37.064333 [info ] [MainThread]: Running dbt debug to validate the project...
+[0m01:23:37.065186 [info ] [MainThread]: dbt version: 1.12.0
+[0m01:23:37.065384 [info ] [MainThread]: python version: 3.11.9
+[0m01:23:37.065513 [info ] [MainThread]: python path: /Users/chokoco/workspaces/PracProject/airbyte-101/.venv/bin/python
+[0m01:23:37.065649 [info ] [MainThread]: os info: macOS-15.7.7-arm64-arm-64bit
+[0m01:23:37.091203 [info ] [MainThread]: Using profiles dir at /Users/chokoco/.dbt
+[0m01:23:37.091439 [info ] [MainThread]: Using profiles.yml file at /Users/chokoco/.dbt/profiles.yml
+[0m01:23:37.091615 [info ] [MainThread]: Using dbt_project.yml file at /Users/chokoco/workspaces/PracProject/airbyte-101/commerce_analytics/dbt_project.yml
+[0m01:23:37.092230 [info ] [MainThread]: adapter type: snowflake
+[0m01:23:37.092351 [info ] [MainThread]: adapter version: 1.10.8
+[0m01:23:37.141576 [info ] [MainThread]: Configuration:
+[0m01:23:37.141864 [info ] [MainThread]:   profiles.yml file [[32mOK found and valid[0m]
+[0m01:23:37.141996 [info ] [MainThread]:   dbt_project.yml file [[32mOK found and valid[0m]
+[0m01:23:37.142109 [info ] [MainThread]: Required dependencies:
+[0m01:23:37.142398 [debug] [MainThread]: Executing "git --help"
+[0m01:23:37.163555 [debug] [MainThread]: STDOUT: "b"usage: git [-v | --version] [-h | --help] [-C <path>] [-c <name>=<value>]\n           [--exec-path[=<path>]] [--html-path] [--man-path] [--info-path]\n           [-p | --paginate | -P | --no-pager] [--no-replace-objects] [--no-lazy-fetch]\n           [--no-optional-locks] [--no-advice] [--bare] [--git-dir=<path>]\n           [--work-tree=<path>] [--namespace=<name>] [--config-env=<name>=<envvar>]\n           <command> [<args>]\n\nThese are common Git commands used in various situations:\n\nstart a working area (see also: git help tutorial)\n   clone      Clone a repository into a new directory\n   init       Create an empty Git repository or reinitialize an existing one\n\nwork on the current change (see also: git help everyday)\n   add        Add file contents to the index\n   mv         Move or rename a file, a directory, or a symlink\n   restore    Restore working tree files\n   rm         Remove files from the working tree and from the index\n\nexamine the history and state (see also: git help revisions)\n   bisect     Use binary search to find the commit that introduced a bug\n   diff       Show changes between commits, commit and working tree, etc\n   grep       Print lines matching a pattern\n   log        Show commit logs\n   show       Show various types of objects\n   status     Show the working tree status\n\ngrow, mark and tweak your common history\n   backfill   Download missing objects in a partial clone\n   branch     List, create, or delete branches\n   commit     Record changes to the repository\n   merge      Join two or more development histories together\n   rebase     Reapply commits on top of another base tip\n   reset      Reset current HEAD to the specified state\n   switch     Switch branches\n   tag        Create, list, delete or verify a tag object signed with GPG\n\ncollaborate (see also: git help workflows)\n   fetch      Download objects and refs from another repository\n   pull       Fetch from and integrate with another repository or a local branch\n   push       Update remote refs along with associated objects\n\n'git help -a' and 'git help -g' list available subcommands and some\nconcept guides. See 'git help <command>' or 'git help <concept>'\nto read about a specific subcommand or concept.\nSee 'git help git' for an overview of the system.\n""
+[0m01:23:37.163972 [debug] [MainThread]: STDERR: "b''"
+[0m01:23:37.164113 [info ] [MainThread]:  - git [[32mOK found[0m]
+
+[0m01:23:37.164256 [info ] [MainThread]: Connection:
+[0m01:23:37.164404 [info ] [MainThread]:   account: GRMMUEN-BC78848
+[0m01:23:37.164507 [info ] [MainThread]:   user: CHOKOCO
+[0m01:23:37.164606 [info ] [MainThread]:   database: AIRBYTE_LAB_DB
+[0m01:23:37.164702 [info ] [MainThread]:   warehouse: DBT_WH
+[0m01:23:37.164796 [info ] [MainThread]:   role: dev
+[0m01:23:37.164892 [info ] [MainThread]:   schema: ANALYTICS_DEV
+[0m01:23:37.164990 [info ] [MainThread]:   authenticator: None
+[0m01:23:37.165086 [info ] [MainThread]:   oauth_client_id: None
+[0m01:23:37.165178 [info ] [MainThread]:   query_tag: None
+[0m01:23:37.165274 [info ] [MainThread]:   client_session_keep_alive: False
+[0m01:23:37.165367 [info ] [MainThread]:   host: None
+[0m01:23:37.165459 [info ] [MainThread]:   port: None
+[0m01:23:37.165549 [info ] [MainThread]:   proxy_host: None
+[0m01:23:37.165642 [info ] [MainThread]:   proxy_port: None
+[0m01:23:37.165733 [info ] [MainThread]:   protocol: None
+[0m01:23:37.165825 [info ] [MainThread]:   connect_retries: 1
+[0m01:23:37.165917 [info ] [MainThread]:   connect_timeout: None
+[0m01:23:37.166008 [info ] [MainThread]:   retry_on_database_errors: False
+[0m01:23:37.166100 [info ] [MainThread]:   retry_all: False
+[0m01:23:37.166192 [info ] [MainThread]:   insecure_mode: False
+[0m01:23:37.166283 [info ] [MainThread]:   reuse_connections: True
+[0m01:23:37.166373 [info ] [MainThread]:   s3_stage_vpce_dns_name: None
+[0m01:23:37.166468 [info ] [MainThread]:   platform_detection_timeout_seconds: 0.0
+[0m01:23:37.166780 [info ] [MainThread]: Registered adapter: snowflake=1.10.8
+[0m01:23:37.227322 [debug] [MainThread]: Acquiring new snowflake connection 'debug'
+[0m01:23:37.249808 [debug] [MainThread]: Using snowflake connection "debug"
+[0m01:23:37.251486 [debug] [MainThread]: On debug: select 1 as id
+[0m01:23:37.251644 [debug] [MainThread]: Opening a new connection, currently in state init
+[0m01:23:38.093393 [debug] [MainThread]: Snowflake adapter: Error running SQL: select 1 as id
+[0m01:23:38.094032 [debug] [MainThread]: Snowflake adapter: Rolling back transaction.
+[0m01:23:38.094558 [info ] [MainThread]:   Connection test: [[31mERROR[0m]
+
+[0m01:23:38.094935 [info ] [MainThread]: [31m1 check failed:[0m
+[0m01:23:38.095252 [info ] [MainThread]: dbt was unable to connect to the specified database.
+The database returned the following error:
+
+  >Database Error
+  250001 (08001): Failed to connect to DB: GRMMUEN-BC78848.snowflakecomputing.com:443. Role 'DEV' specified in the connect string does not exist or not authorized. Contact your local system administrator, or attempt to login with another role, e.g. PUBLIC.
+
+Check your database credentials and try again. For more information, visit:
+https://docs.getdbt.com/docs/configure-your-profile
+
+
+[0m01:23:38.095884 [info ] [MainThread]: Your new dbt project "commerce_analytics" was created!
+Initialized new project in /Users/chokoco/workspaces/PracProject/airbyte-101/commerce_analytics/commerce_analytics
+
+For more information on how to configure the profiles.yml file,
+please consult the dbt documentation here:
+
+  https://docs.getdbt.com/docs/configure-your-profile
+
+One more thing:
+
+Need help? Don't hesitate to reach out to us via GitHub issues or on Slack:
+
+  https://community.getdbt.com/
+
+Happy modeling!
+
+[0m01:23:38.096215 [info ] [MainThread]: [31mYour profile may need adjustments. You can find the logs of `dbt debug` above[0m
+[0m01:23:38.100567 [debug] [MainThread]: Resource report: {"command_name": "init", "command_success": true, "command_wall_clock_time": 97.37249, "process_in_blocks": "0", "process_kernel_time": 0.283912, "process_mem_max_rss": "139706368", "process_out_blocks": "0", "process_user_time": 1.127421}
+[0m01:23:38.101215 [debug] [MainThread]: Command `dbt init` succeeded at 01:23:38.101062 after 97.37 seconds
+[0m01:23:38.101596 [debug] [MainThread]: Connection 'debug' was left open.
+[0m01:23:38.101846 [debug] [MainThread]: On debug: No close available on handle
+[0m01:23:38.102256 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'end', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x10119e490>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x105f76e90>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x1057c4110>]}
+[0m01:23:38.102721 [debug] [MainThread]: Flushing usage events
+[0m01:23:38.856640 [debug] [MainThread]: An error was encountered while trying to flush usage events
+[0m23:20:56.606812 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'start', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x10969dad0>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x10969d890>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x108c6ca50>]}
+
+
+============================== 23:20:56.609598 | d6344891-0e9d-41f1-aedf-dc4e146272c6 ==============================
+[0m23:20:56.609598 [info ] [MainThread]: Running with dbt=1.12.0
+[0m23:20:56.609849 [debug] [MainThread]: running dbt with arguments {'warn_error_options': 'WarnErrorOptionsV2(error=[], warn=[], silence=[])', 'hints_enabled': 'True', 'quiet': 'False', 'log_path': 'logs', 'invocation_command': 'dbt parse', 'warn_error': 'None', 'debug': 'False', 'profiles_dir': '/Users/chokoco/.dbt', 'static_parser': 'True', 'maximum_seed_size_mib': '1', 'use_colors': 'True', 'partial_parse': 'True', 'use_experimental_parser': 'False', 'target_path': 'None', 'no_print': 'None', 'empty': 'None', 'version_check': 'True', 'printer_width': '80', 'send_anonymous_usage_stats': 'True', 'indirect_selection': 'eager', 'write_json': 'True', 'cache_selected_only': 'False', 'log_cache_events': 'False', 'fail_fast': 'False', 'introspect': 'True', 'log_format': 'default'}
+[0m23:20:56.610124 [error] [MainThread]: [[31mERROR[0m]: Encountered an error:
+Runtime Error
+  No dbt_project.yml found at expected path /Users/chokoco/workspaces/PracProject/airbyte-101/dbt_project.yml
+  Verify that each entry within packages.yml (and their transitive dependencies) contains a file named dbt_project.yml
+  
+[0m23:20:56.611673 [debug] [MainThread]: Resource report: {"command_name": "parse", "command_success": false, "command_wall_clock_time": 0.04679421, "process_in_blocks": "0", "process_kernel_time": 0.108948, "process_mem_max_rss": "117178368", "process_out_blocks": "0", "process_user_time": 0.565189}
+[0m23:20:56.611869 [debug] [MainThread]: Command `dbt parse` failed at 23:20:56.611826 after 0.05 seconds
+[0m23:20:56.612022 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'end', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x10969c5d0>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x104736910>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x10960ff50>]}
+[0m23:20:56.612156 [debug] [MainThread]: Flushing usage events
+[0m23:20:57.382082 [debug] [MainThread]: An error was encountered while trying to flush usage events
