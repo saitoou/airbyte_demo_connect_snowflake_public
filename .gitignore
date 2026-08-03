@@ -2,3 +2,9 @@
 .secrets/
 .venv/
 logs/
+commerce_analytics/dbt_packages/
+commerce_analytics/target/
+commerce_analytics/logs/
+.venv-elementary/
+edr.log
+elementary_report.html
