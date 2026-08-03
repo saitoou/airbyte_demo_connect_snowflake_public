@@ -36,3 +36,6 @@ models:
     
     marts:
       +materialized: table
+
+  elementary:
+    +schema: elementary
