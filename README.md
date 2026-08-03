@@ -9,16 +9,16 @@ GitHub ActionsとSnowflake Workload Identity Federation（OIDC）を使用し、
 ```mermaid
 flowchart LR
     API[Go API] --> PG[(PostgreSQL)]
-    PG -->|Airbyte / Xmin| RAW[(Snowflake\nAIRBYTE_RAW)]
+    PG -->|Airbyte / Xmin| RAW[(Snowflake\nRaw Schema)]
     RAW -->|dbt| STG[(ANALYTICS_*\nStaging)]
     STG -->|dbt| MART[(ANALYTICS_*\nMarts)]
     MART --> BI[BI Tool]
 
     PR[Pull Request] --> CI[GitHub Actions\ndbt CI]
-    CI --> CI_SCHEMA[(ANALYTICS_CI)]
+    CI --> CI_SCHEMA[(CI Schema)]
 
     MAIN[main branch] --> CD[GitHub Actions\ndbt CD]
-    CD --> PROD_SCHEMA[(ANALYTICS_PROD)]
+    CD --> PROD_SCHEMA[(Production Schema)]
 ```
 
 ## Goals
@@ -38,11 +38,11 @@ flowchart LR
 ## Repository
 
 ```text
-git@github.com:saitoou/airbyte_demo_connect_snowflake.git
+git@github.com:<github-owner>/<repository-name>.git
 ```
 
 ```text
-https://github.com/saitoou/airbyte_demo_connect_snowflake
+https://github.com/<github-owner>/<repository-name>
 ```
 
 ## Technology Stack
@@ -124,18 +124,18 @@ Update method: Xmin
 Snowflake Destinationは次の構成です。
 
 ```text
-Database: AIRBYTE_LAB_DB
-Schema: AIRBYTE_RAW
-Warehouse: AIRBYTE_LAB_WH
-Role: AIRBYTE_LAB_ROLE
-User: AIRBYTE_LAB_USER
+Database: <snowflake-database>
+Schema: <snowflake-raw-schema>
+Warehouse: <snowflake-warehouse>
+Role: <snowflake-role>
+User: <snowflake-user>
 ```
 
 同期対象テーブルは次のとおりです。
 
 ```text
-AIRBYTE_LAB_DB.AIRBYTE_RAW.CUSTOMERS
-AIRBYTE_LAB_DB.AIRBYTE_RAW.ORDERS
+<snowflake-database>.<snowflake-raw-schema>.CUSTOMERS
+<snowflake-database>.<snowflake-raw-schema>.ORDERS
 ```
 
 確認済みの動作です。
@@ -185,17 +185,17 @@ cancelled
 Airbyteが同期したデータを、そのまま保持します。
 
 ```text
-AIRBYTE_LAB_DB.AIRBYTE_RAW
+<snowflake-database>.<snowflake-raw-schema>
 ```
 
 ### Development
 
 ```text
-Role: DBT_DEV_ROLE
-Warehouse: DBT_WH
-Database: AIRBYTE_LAB_DB
-Schema: ANALYTICS_DEV
-User: CHOKOCO
+Role: <dbt-dev-role>
+Warehouse: <dbt-warehouse>
+Database: <snowflake-database>
+Schema: <dbt-dev-schema>
+User: <dbt-dev-user>
 ```
 
 ### CI
@@ -203,11 +203,11 @@ User: CHOKOCO
 Pull Requestごとにdbtモデルを構築し、テストを実行します。
 
 ```text
-User: DBT_CI_USER
-Role: DBT_CI_ROLE
-Warehouse: DBT_WH
-Database: AIRBYTE_LAB_DB
-Schema: ANALYTICS_CI
+User: <dbt-ci-user>
+Role: <dbt-ci-role>
+Warehouse: <dbt-warehouse>
+Database: <snowflake-database>
+Schema: <dbt-ci-schema>
 GitHub Environment: ci
 ```
 
@@ -216,11 +216,11 @@ GitHub Environment: ci
 `main`へマージされたコードを本番Schemaへデプロイします。
 
 ```text
-User: DBT_PROD_USER
-Role: DBT_PROD_ROLE
-Warehouse: DBT_WH
-Database: AIRBYTE_LAB_DB
-Schema: ANALYTICS_PROD
+User: <dbt-prod-user>
+Role: <dbt-prod-role>
+Warehouse: <dbt-warehouse>
+Database: <snowflake-database>
+Schema: <dbt-prod-schema>
 GitHub Environment: prod
 ```
 
@@ -402,7 +402,7 @@ dbt debug
   ↓
 dbt build --target ci
   ↓
-ANALYTICS_CIへモデル作成・テスト
+CI用Schemaへモデル作成・テスト
 ```
 
 CIのJob名は次のとおりです。
@@ -428,7 +428,7 @@ dbt debug
   ↓
 dbt build --target prod
   ↓
-ANALYTICS_PRODへデプロイ・テスト
+本番用Schemaへデプロイ・テスト
 ```
 
 CI/CDの動作確認は完了しています。
@@ -438,23 +438,23 @@ CI/CDの動作確認は完了しています。
 ### ci
 
 ```text
-SNOWFLAKE_ACCOUNT    = GRMMUEN-BC78848
-SNOWFLAKE_DATABASE   = AIRBYTE_LAB_DB
-SNOWFLAKE_ROLE       = DBT_CI_ROLE
-SNOWFLAKE_SCHEMA     = ANALYTICS_CI
-SNOWFLAKE_USER       = DBT_CI_USER
-SNOWFLAKE_WAREHOUSE  = DBT_WH
+SNOWFLAKE_ACCOUNT    = <snowflake-account>
+SNOWFLAKE_DATABASE   = <snowflake-database>
+SNOWFLAKE_ROLE       = <dbt-ci-role>
+SNOWFLAKE_SCHEMA     = <dbt-ci-schema>
+SNOWFLAKE_USER       = <dbt-ci-user>
+SNOWFLAKE_WAREHOUSE  = <dbt-warehouse>
 ```
 
 ### prod
 
 ```text
-SNOWFLAKE_ACCOUNT    = GRMMUEN-BC78848
-SNOWFLAKE_DATABASE   = AIRBYTE_LAB_DB
-SNOWFLAKE_ROLE       = DBT_PROD_ROLE
-SNOWFLAKE_SCHEMA     = ANALYTICS_PROD
-SNOWFLAKE_USER       = DBT_PROD_USER
-SNOWFLAKE_WAREHOUSE  = DBT_WH
+SNOWFLAKE_ACCOUNT    = <snowflake-account>
+SNOWFLAKE_DATABASE   = <snowflake-database>
+SNOWFLAKE_ROLE       = <dbt-prod-role>
+SNOWFLAKE_SCHEMA     = <dbt-prod-schema>
+SNOWFLAKE_USER       = <dbt-prod-user>
+SNOWFLAKE_WAREHOUSE  = <dbt-warehouse>
 ```
 
 Snowflakeのパスワードや秘密鍵はGitHub Secretsに登録していません。
@@ -467,10 +467,10 @@ CIと本番でOIDC Subjectを分離しています。
 
 ```text
 CI:
-repo:saitoou@79582087/airbyte_demo_connect_snowflake@1319726112:environment:ci
+repo:<github-owner>@<github-owner-id>/<repository-name>@<repository-id>:environment:ci
 
 Production:
-repo:saitoou@79582087/airbyte_demo_connect_snowflake@1319726112:environment:prod
+repo:<github-owner>@<github-owner-id>/<repository-name>@<repository-id>:environment:prod
 ```
 
 これにより、GitHub ActionsからSnowflakeへパスワードレスで接続できます。
@@ -517,8 +517,8 @@ dbt build
 CD完了後は、Snowflakeで次のオブジェクトを確認します。
 
 ```sql
-show views in schema AIRBYTE_LAB_DB.ANALYTICS_PROD;
-show tables in schema AIRBYTE_LAB_DB.ANALYTICS_PROD;
+show views in schema <snowflake-database>.<dbt-prod-schema>;
+show tables in schema <snowflake-database>.<dbt-prod-schema>;
 ```
 
 想定されるView：
@@ -536,7 +536,7 @@ FCT_ORDERS
 MART_DAILY_SALES
 ```
 
-データ確認には、書き込み用の`DBT_PROD_ROLE`ではなく、必要に応じて読み取り専用ロールを使用します。
+データ確認には、書き込み用の`<dbt-prod-role>`ではなく、必要に応じて読み取り専用ロールを使用します。
 
 ## Current Status
 
@@ -556,7 +556,7 @@ MART_DAILY_SALES
 - CI用User / Role / Schema分離
 - 本番用User / Role / Schema分離
 - GitHub Actions CD
-- `ANALYTICS_PROD`へのデプロイ
+- 本番用Schemaへのデプロイ
 - CI/CDの一連の動作確認
 
 ### Next Steps
