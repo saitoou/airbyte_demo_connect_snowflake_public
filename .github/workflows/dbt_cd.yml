@@ -53,6 +53,10 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements-dbt.txt
           python -m pip check
+          
+      - name: Install dbt packages
+        working-directory: commerce_analytics
+        run: dbt deps
 
       - name: Authenticate to Snowflake with OIDC
         uses: snowflakedb/snowflake-actions@v3

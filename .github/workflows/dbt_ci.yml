@@ -84,6 +84,10 @@ jobs:
                 threads: 4
           YAML
 
+      - name: Install dbt packages
+        working-directory: commerce_analytics
+        run: dbt deps
+
       - name: Lint dbt SQL
         working-directory: commerce_analytics
         run: |
