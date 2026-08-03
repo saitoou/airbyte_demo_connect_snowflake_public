@@ -3,3 +3,10 @@ target/
 dbt_packages/
 logs/
 .env
+.env.secrets/
+.secrets/
+.venv/
+logs/
+.venv-elementary/
+edr.log
+elementary_report.html
