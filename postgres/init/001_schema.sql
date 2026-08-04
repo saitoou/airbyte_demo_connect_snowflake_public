@@ -38,7 +38,7 @@ create table generated_batches (
 );
 
 create user airbyte_reader
-    with password '***MASKED***';
+    with password 'test';
 
 grant connect
     on database airbyte_source_db

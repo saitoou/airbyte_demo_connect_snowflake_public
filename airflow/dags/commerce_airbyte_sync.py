@@ -8,7 +8,7 @@ from airflow.providers.airbyte.operators.airbyte import (
 from airflow.providers.standard.operators.bash import BashOperator
 
 
-AIRBYTE_CONNECTION_ID = "388f72a3-8d49-4f65-a5ba-4e8bbfdc3f99"
+AIRBYTE_CONNECTION_ID = "<snowflake-connect-id>"
 
 with DAG(
     dag_id="commerce_airbyte_sync",
