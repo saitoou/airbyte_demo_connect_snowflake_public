@@ -477,6 +477,18 @@ repo:<github-owner>@<github-owner-id>/<repository-name>@<repository-id>:environm
 
 ## Local Development
 
+よく使うローカルコマンドは、トップレベルの`Makefile`から実行できます。
+
+```bash
+make help
+make -n dbt-build DBT_TARGET=dev
+make dbt-build DBT_TARGET=dev
+make dbt-build DBT_SELECT=mart_daily_sales
+make elementary-report DBT_TARGET=dev
+```
+
+`make -n <target>`で実行予定のコマンドだけを確認できます。
+
 ### 1. PostgreSQLを起動
 
 ```bash
