@@ -1,94 +1,150 @@
-# Airbyte × Snowflake × dbt Data Platform Demo
+# Airbyte x Snowflake x dbt Data Platform Demo
 
-PostgreSQLの業務データをAirbyteでSnowflakeへ同期し、dbtで分析用モデルへ変換するデータ基盤の個人検証プロジェクトです。
+アプリケーションで発生する業務データを想定し、データ生成、PostgreSQLへの投入、AirbyteによるSnowflake同期、dbtによる分析用モデル作成、データ品質テストまでをE2Eで検証するローカルデータ基盤サンプルです。
 
-GitHub ActionsとSnowflake Workload Identity Federation（OIDC）を使用し、Pull Request時のCIと、`main`マージ後の本番デプロイまでを自動化しています。
+GitHub ActionsとSnowflake Workload Identity Federation（OIDC）を使い、Pull Request時のCIと`main`マージ後の本番dbtデプロイも自動化しています。
+
+## What This Project Does
+
+```text
+Go CLI
+  -> PostgreSQL
+  -> Airflow
+  -> Airbyte
+  -> Snowflake RAW
+  -> dbt Staging
+  -> dbt Marts
+  -> dbt data tests / Elementary
+```
+
+各ツールを起動するだけではなく、Go CLIで追加した新しいデータがSnowflake上のMartまで反映されることを確認しています。
+
+実装・確認済みの主な内容です。
+
+- Go CLIによる顧客・注文データ生成
+- PostgreSQLへのテストデータ投入
+- `batch_id`による二重投入防止
+- AirbyteによるPostgreSQLからSnowflake RAW層への同期
+- Airbyte XminによるINSERT / UPDATE検知
+- AirflowからAirbyte Sync Jobを起動
+- Airflowから`dbt build`を実行
+- dbt Staging / Martsモデルの作成
+- dbt data testsによる品質チェック
+- Elementaryによるdbt実行情報・品質メタデータの記録
+- SQLFluffによるSQL規約チェック
+- GitHub ActionsからSnowflakeへのOIDC認証
+- CI / Production用Snowflake User・Role・Schemaの分離
+- GitHub Actionsによるdbt CI/CD
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-    API[Go API] --> PG[(PostgreSQL)]
-    PG -->|Airbyte / Xmin| RAW[(Snowflake\nRaw Schema)]
-    RAW -->|dbt| STG[(ANALYTICS_*\nStaging)]
-    STG -->|dbt| MART[(ANALYTICS_*\nMarts)]
-    MART --> BI[BI Tool]
+    CLI[Go CLI] --> PG[(PostgreSQL)]
+    PG -->|Airbyte / Xmin| RAW[(Snowflake RAW)]
+    AF[Airflow] --> AB[Airbyte Sync]
+    AB --> RAW
+    AF --> DBT[dbt build]
+    RAW --> DBT
+    DBT --> STG[Staging Models]
+    STG --> MART[Mart Models]
+    DBT --> TEST[dbt data tests]
+    DBT --> ELEM[Elementary Metadata]
 
-    PR[Pull Request] --> CI[GitHub Actions\ndbt CI]
-    CI --> CI_SCHEMA[(CI Schema)]
-
-    MAIN[main branch] --> CD[GitHub Actions\ndbt CD]
+    PR[Pull Request] --> CI[GitHub Actions dbt CI]
+    CI --> CI_SCHEMA[(ANALYTICS_CI)]
+    MAIN[main branch] --> CD[GitHub Actions dbt CD]
     CD --> PROD_SCHEMA[(Production Schema)]
 ```
 
-## Goals
+Airflow DAG内では、Airbyte Syncが完了してからdbtを実行します。Airbyte Syncが失敗した場合、後続のdbt Taskは実行されません。
 
-このプロジェクトでは、次の一連のデータ基盤構築を実務に近い形で検証します。
-
-- PostgreSQLからSnowflakeへのデータ連携
-- Airbyteによる増分同期
-- Snowflake上でのRAW / Staging / Marts分離
-- dbtによるデータ変換とテスト
-- SQLFluffによるSQLの静的解析
-- GitHub ActionsによるCI/CD
-- GitHub OIDCを利用したパスワードレス認証
-- CI環境と本番環境の権限分離
-- 将来的なAPI、定期実行、BI連携
-
-## Repository
-
-```text
-git@github.com:<github-owner>/<repository-name>.git
-```
-
-```text
-https://github.com/<github-owner>/<repository-name>
+```mermaid
+flowchart LR
+    A[sync_postgres_to_snowflake] --> B[dbt_build]
 ```
 
 ## Technology Stack
 
-| Category | Technology |
-|---|---|
-| Source database | PostgreSQL 16 |
-| Data integration | Airbyte Core / abctl |
-| Data warehouse | Snowflake |
-| Data transformation | dbt Core / dbt-snowflake |
-| SQL lint | SQLFluff / dbt templater |
-| CI/CD | GitHub Actions |
-| Authentication | GitHub OIDC / Snowflake Workload Identity Federation |
-| API | Go（予定） |
-| BI | 未選定 |
+| Category | Technology | Role |
+|---|---|---|
+| Data generation | Go | 顧客・注文のテストデータ生成 |
+| Source database | PostgreSQL 16 | 元データの保存 |
+| Data integration | Airbyte Core / abctl | PostgreSQLからSnowflakeへの同期 |
+| Local Airbyte runtime | kind / Kubernetes | ローカルAirbyte環境 |
+| Orchestration | Apache Airflow 3.3 | Airbyteとdbtの実行制御 |
+| Queue | Redis | Airflow Celery構成のBroker |
+| Airflow metadata DB | PostgreSQL | DAG RunやConnectionの保存 |
+| Data warehouse | Snowflake | RAW・Staging・Martsの保存 |
+| Transformation | dbt Core / dbt-snowflake | SQLモデルの依存関係管理と変換 |
+| Data quality | dbt data tests | not_null、unique、relationshipsなど |
+| Observability | Elementary | dbt実行・品質メタデータの記録 |
+| SQL lint | SQLFluff / dbt templater | SQLの静的解析 |
+| CI/CD | GitHub Actions | PR検証と本番dbtデプロイ |
+| Authentication | OIDC / Key Pair | CIとローカル環境のSnowflake認証 |
 
 ## Project Structure
 
 ```text
-airbyte-101/
+airbyte_demo_connect_snowflake_public/
 ├── .github/
 │   └── workflows/
 │       ├── dbt_ci.yml
 │       └── dbt_cd.yml
+├── airflow/
+│   ├── dags/
+│   │   └── commerce_airbyte_sync.py
+│   ├── Dockerfile
+│   ├── docker-compose.yaml
+│   └── requirements.txt
+├── cmd/
+│   └── generator/
+│       └── main.go
 ├── commerce_analytics/
 │   ├── dbt_project.yml
+│   ├── packages.yml
 │   ├── models/
 │   │   ├── staging/
 │   │   │   └── postgres/
-│   │   │       ├── _postgres__sources.yml
-│   │   │       ├── _postgres__models.yml
-│   │   │       ├── stg_postgres__customers.sql
-│   │   │       └── stg_postgres__orders.sql
 │   │   └── marts/
-│   │       ├── _marts__models.yml
-│   │       ├── dim_customers.sql
-│   │       ├── fct_orders.sql
-│   │       └── mart_daily_sales.sql
+│   ├── macros/
 │   └── tests/
-├── requirements-dbt.txt
-└── docker-compose.yml
+├── docs/
+│   └── data-platform-readme-draft.md
+├── postgres/
+│   └── init/
+├── docker-compose.yml
+├── go.mod
+├── go.sum
+└── requirements-dbt.txt
 ```
+
+`.secrets/`、`airflow/.env`、dbt生成物、ElementaryレポートはGit管理しません。
 
 ## Data Flow
 
-### 1. PostgreSQL
+### 1. Generate Data With Go CLI
+
+```bash
+export DATABASE_URL='postgres://app_user:<password>@localhost:5433/airbyte_source_db?sslmode=disable'
+
+go run ./cmd/generator \
+  --batch-id manual-003 \
+  --customers 2 \
+  --orders 5 \
+  --seed 300
+```
+
+主な特徴です。
+
+- `pgx/v5`を使用
+- トランザクション内で顧客・注文を登録
+- `RETURNING id`で採番された顧客IDを取得
+- `generated_batches`で実行済みバッチを管理
+- 同じ`batch_id`を再実行しても重複投入しない
+- `--seed`指定により再現可能なデータを生成
+
+### 2. Store Source Data In PostgreSQL
 
 Docker ComposeでPostgreSQL 16を起動します。
 
@@ -98,20 +154,20 @@ Docker ComposeでPostgreSQL 16を起動します。
 | Host port | `5433` |
 | Container port | `5432` |
 | Database | `airbyte_source_db` |
+| App user | `app_user` |
 | Airbyte user | `airbyte_reader` |
 
-主要テーブルは次の2つです。
+主要テーブルです。
 
 ```text
 customers
 orders
+generated_batches
 ```
 
-### 2. Airbyte
+### 3. Sync PostgreSQL To Snowflake With Airbyte
 
-Airbyte Coreを`abctl`でローカルに構築しています。
-
-PostgreSQL Sourceの主な設定は次のとおりです。
+PostgreSQL Sourceの主な設定です。
 
 ```text
 Host: host.docker.internal
@@ -121,7 +177,7 @@ User: airbyte_reader
 Update method: Xmin
 ```
 
-Snowflake Destinationは次の構成です。
+Snowflake DestinationはRAW層へ同期します。
 
 ```text
 Database: <snowflake-database>
@@ -131,7 +187,7 @@ Role: <snowflake-role>
 User: <snowflake-user>
 ```
 
-同期対象テーブルは次のとおりです。
+同期対象テーブルです。
 
 ```text
 <snowflake-database>.<snowflake-raw-schema>.CUSTOMERS
@@ -148,19 +204,47 @@ User: <snowflake-user>
 - 論理削除済み顧客の同期
 - キャンセル済み注文の同期
 
-## Delete and Cancel Policy
+### 4. Run Airbyte And dbt From Airflow
+
+DAGでは`AirbyteTriggerSyncOperator`でAirbyte Sync Jobを起動し、完了後に`BashOperator`で`dbt build`を実行します。
+
+```python
+sync_postgres_to_snowflake = AirbyteTriggerSyncOperator(
+    task_id="sync_postgres_to_snowflake",
+    airbyte_conn_id="airbyte_default",
+    connection_id=AIRBYTE_CONNECTION_ID,
+    asynchronous=False,
+    wait_seconds=10,
+    timeout=1800,
+)
+
+dbt_build = BashOperator(
+    task_id="dbt_build",
+    bash_command="""
+        set -euo pipefail
+
+        /opt/airflow/dbt_venv/bin/dbt build \
+        --project-dir /opt/airflow/commerce_analytics \
+        --profiles-dir /home/airflow/.dbt
+    """,
+)
+
+sync_postgres_to_snowflake >> dbt_build
+```
+
+現在のDAGは手動実行です。
+
+```python
+schedule=None
+```
+
+## Delete And Cancel Policy
 
 AirbyteのXmin方式では物理DELETEを検知できないため、業務データは原則として論理削除またはステータス変更で扱います。
 
-### customers
+`customers`は`deleted_at`で論理削除を表します。
 
-```text
-deleted_atによる論理削除
-```
-
-### orders
-
-注文は原則として物理削除しません。
+`orders`は原則として物理削除せず、キャンセル時は次の値を更新します。
 
 ```text
 status = cancelled
@@ -168,7 +252,7 @@ cancelled_at = current_timestamp
 updated_at = current_timestamp
 ```
 
-`orders.status`の許容値は次のとおりです。
+`orders.status`の許容値です。
 
 ```text
 pending
@@ -180,111 +264,47 @@ cancelled
 
 ## Snowflake Layer Design
 
-### RAW
-
-Airbyteが同期したデータを、そのまま保持します。
+RAW層にはAirbyteが同期したデータを保持します。
 
 ```text
 <snowflake-database>.<snowflake-raw-schema>
 ```
 
-### Development
+dbtの実行環境はDevelopment、CI、ProductionでSchemaとRoleを分離します。
 
-```text
-Role: <dbt-dev-role>
-Warehouse: <dbt-warehouse>
-Database: <snowflake-database>
-Schema: <dbt-dev-schema>
-User: <dbt-dev-user>
-```
+| Environment | User | Role | Schema | Authentication |
+|---|---|---|---|---|
+| Development | `<dbt-dev-user>` | `<dbt-dev-role>` | `<dbt-dev-schema>` | Key Pair |
+| CI | `<dbt-ci-user>` | `<dbt-ci-role>` | `<dbt-ci-schema>` | GitHub OIDC |
+| Production | `<dbt-prod-user>` | `<dbt-prod-role>` | `<dbt-prod-schema>` | GitHub OIDC |
 
-### CI
-
-Pull Requestごとにdbtモデルを構築し、テストを実行します。
-
-```text
-User: <dbt-ci-user>
-Role: <dbt-ci-role>
-Warehouse: <dbt-warehouse>
-Database: <snowflake-database>
-Schema: <dbt-ci-schema>
-GitHub Environment: ci
-```
-
-### Production
-
-`main`へマージされたコードを本番Schemaへデプロイします。
-
-```text
-User: <dbt-prod-user>
-Role: <dbt-prod-role>
-Warehouse: <dbt-warehouse>
-Database: <snowflake-database>
-Schema: <dbt-prod-schema>
-GitHub Environment: prod
-```
-
-CI用ロールと本番用ロールは分離し、それぞれの書き込み先Schemaだけを操作できるようにしています。
+CI用ロールと本番用ロールは、それぞれの書き込み先Schemaだけを操作できるようにしています。
 
 ## dbt Models
 
-### Staging
-
-StagingモデルはViewとして作成します。
+StagingモデルはView、MartsモデルはTableとして作成します。
 
 ```yaml
 models:
   commerce_analytics:
     staging:
       +materialized: view
+
+    marts:
+      +materialized: table
+
+  elementary:
+    +schema: elementary
 ```
 
-モデル：
+Stagingモデルです。
 
 ```text
 STG_POSTGRES__CUSTOMERS
 STG_POSTGRES__ORDERS
 ```
 
-顧客モデルの主な列：
-
-```text
-CUSTOMER_ID
-CUSTOMER_NAME
-EMAIL
-CREATED_AT
-UPDATED_AT
-DELETED_AT
-IS_DELETED
-AIRBYTE_EXTRACTED_AT
-```
-
-注文モデルの主な列：
-
-```text
-ORDER_ID
-CUSTOMER_ID
-ORDER_STATUS
-TOTAL_AMOUNT
-ORDERED_AT
-UPDATED_AT
-CANCELLED_AT
-IS_CANCELLED
-AIRBYTE_EXTRACTED_AT
-```
-
-### Marts
-
-MartsモデルはTableとして作成します。
-
-```yaml
-models:
-  commerce_analytics:
-    marts:
-      +materialized: table
-```
-
-モデル：
+Martsモデルです。
 
 ```text
 DIM_CUSTOMERS
@@ -312,14 +332,16 @@ gross_order_amount
 recognized_order_amount
 ```
 
-## dbt Tests
+## dbt Tests And Elementary
 
-現在、次のテストを実装しています。
+実装済みの主なテストです。
 
 - `not_null`
 - `unique`
 - `accepted_values`
 - `relationships`
+- 金額が負数でないこと
+- 日次集計値が負数でないこと
 
 主な検証内容です。
 
@@ -330,23 +352,19 @@ recognized_order_amount
 - Martsでも主キーと参照整合性が保たれること
 - `mart_daily_sales`が1日1行であること
 
-確認済みの実行結果です。
+Elementaryはdbt packageとして導入しています。
 
-```text
-5 models
-23 data tests
-2 sources
-
-PASS=28
-WARN=0
-ERROR=0
-SKIP=0
-TOTAL=28
+```yaml
+packages:
+  - package: elementary-data/elementary
+    version: 0.25.1
 ```
+
+dbtの実行結果、テスト結果、スキーマ情報、異常検知用メタデータなどをSnowflakeへ保存します。
 
 ## SQLFluff
 
-SQLFluffのdbt templaterを使用しています。
+SQLFluffはdbt templaterを使います。
 
 ```ini
 [sqlfluff]
@@ -359,16 +377,6 @@ max_line_length = 100
 project_dir = .
 profiles_dir = ~/.dbt
 profile = commerce_analytics
-
-[sqlfluff:indentation]
-tab_space_size = 2
-implicit_indents = allow
-
-[sqlfluff:rules:capitalisation.keywords]
-capitalisation_policy = lower
-
-[sqlfluff:rules:capitalisation.identifiers]
-capitalisation_policy = lower
 ```
 
 ローカルでは次のコマンドを使用します。
@@ -385,6 +393,165 @@ CIではコードを自動修正せず、lintのみ実行します。
 sqlfluff lint models tests --format github-annotation-native
 ```
 
+dbt templaterでprojectをコンパイルするため、SQLFluffのローカル実行にもdbtの認証設定が必要です。
+
+## Local Setup
+
+### 1. Start PostgreSQL
+
+```bash
+docker compose up -d
+```
+
+### 2. Install dbt Dependencies
+
+```bash
+python -m pip install --upgrade pip
+python -m pip install -r requirements-dbt.txt
+python -m pip check
+```
+
+### 3. Configure dbt Profile
+
+ローカルの`~/.dbt/profiles.yml`を設定します。Snowflake Key Pair認証では次の環境変数を使用します。
+
+```text
+DBT_SNOWFLAKE_PRIVATE_KEY_PATH
+DBT_ENV_SECRET_SNOWFLAKE_KEY_PASSPHRASE
+```
+
+ホストとAirflow Workerでは秘密鍵パスが異なります。
+
+```text
+Host:
+<repository>/.secrets/dbt/rsa_key.p8
+
+Airflow Worker:
+/opt/airflow/secrets/dbt/rsa_key.p8
+```
+
+### 4. Validate dbt
+
+```bash
+cd commerce_analytics
+dbt deps
+dbt debug
+dbt build
+```
+
+## Airflow Setup
+
+### Start Port Forwarding For Airbyte
+
+現在のローカル構成では、AirflowコンテナからAirbyte APIへ接続するためにポートフォワードが必要です。
+
+```bash
+kubectl -n ingress-nginx \
+  port-forward service/ingress-nginx-controller 18080:8000
+```
+
+Airflowから利用するURLです。
+
+```text
+http://host.docker.internal:18080/api/public/v1/
+```
+
+### Start Airflow
+
+```bash
+docker compose \
+  --env-file airflow/.env \
+  -f airflow/docker-compose.yaml \
+  -p airflow-lab \
+  up -d
+```
+
+主なサービスです。
+
+```text
+airflow-apiserver
+airflow-scheduler
+airflow-worker
+airflow-triggerer
+airflow-dag-processor
+postgres
+redis
+```
+
+dbtはAirflowイメージ内の専用venvにインストールしています。
+
+```text
+/opt/airflow/dbt_venv/bin/dbt
+/opt/airflow/dbt_venv/bin/sqlfluff
+```
+
+### Check DAG Import
+
+```bash
+docker compose \
+  --env-file airflow/.env \
+  -f airflow/docker-compose.yaml \
+  -p airflow-lab \
+  exec airflow-apiserver \
+  airflow dags list-import-errors
+```
+
+正常時です。
+
+```text
+No data found
+```
+
+### Check Airbyte Connection
+
+```bash
+docker compose \
+  --env-file airflow/.env \
+  -f airflow/docker-compose.yaml \
+  -p airflow-lab \
+  exec airflow-apiserver \
+  airflow connections test airbyte_default
+```
+
+正常時です。
+
+```text
+Connection success!
+```
+
+`airflow connections get`は復号済みSecretを表示する場合があるため、出力を共有しないでください。
+
+### Run DAG
+
+Airflow UIから`commerce_airbyte_sync`を手動実行します。
+
+```text
+sync_postgres_to_snowflake
+  -> dbt_build
+```
+
+## Snowflake Verification
+
+```sql
+select count(*)
+from AIRBYTE_LAB_DB.ANALYTICS_DEV.DIM_CUSTOMERS;
+
+select count(*)
+from AIRBYTE_LAB_DB.ANALYTICS_DEV.FCT_ORDERS;
+
+select *
+from AIRBYTE_LAB_DB.ANALYTICS_DEV.MART_DAILY_SALES
+order by order_date desc;
+```
+
+確認観点です。
+
+- `DIM_CUSTOMERS`が追加顧客数分増えている
+- `FCT_ORDERS`が追加注文数分増えている
+- `MART_DAILY_SALES`の該当日の件数・金額が更新されている
+
+日次Martは日付単位の集計なので、新規データを追加しても必ずしも行数が増えるわけではありません。
+
 ## CI/CD
 
 ### CI
@@ -393,19 +560,14 @@ Pull Requestが作成されると、`dbt CI` Workflowが起動します。
 
 ```text
 Pull Request
-  ↓
-SQLFluff lint
-  ↓
-dbt parse
-  ↓
-dbt debug
-  ↓
-dbt build --target ci
-  ↓
-CI用Schemaへモデル作成・テスト
+  -> SQLFluff lint
+  -> dbt parse
+  -> dbt debug
+  -> dbt build --target ci
+  -> CI用Schemaへモデル作成・テスト
 ```
 
-CIのJob名は次のとおりです。
+CIのJob名です。
 
 ```text
 Lint and build dbt
@@ -415,20 +577,22 @@ GitHub Rulesetで、このJobの成功を`main`へのマージ条件にしてい
 
 ### CD
 
-Pull Requestが`main`へマージされると、`dbt CD` Workflowが起動します。
+`main`へpushされると、`dbt CD` Workflowが起動します。
 
 ```text
-mainへのマージ
-  ↓
-GitHub OIDC認証
-  ↓
-dbt parse
-  ↓
-dbt debug
-  ↓
-dbt build --target prod
-  ↓
-本番用Schemaへデプロイ・テスト
+mainへのpush
+  -> GitHub OIDC認証
+  -> dbt deps
+  -> dbt parse
+  -> dbt debug
+  -> dbt build --target prod
+  -> 本番用Schemaへデプロイ・テスト
+```
+
+CDのJob名です。
+
+```text
+Deploy dbt to production
 ```
 
 CI/CDの動作確認は完了しています。
@@ -463,7 +627,7 @@ Snowflakeのパスワードや秘密鍵はGitHub Secretsに登録していませ
 
 GitHub ActionsとSnowflakeの認証には、Workload Identity Federation（OIDC）を使用します。
 
-CIと本番でOIDC Subjectを分離しています。
+CIとProductionでOIDC Subjectを分離しています。
 
 ```text
 CI:
@@ -475,156 +639,125 @@ repo:<github-owner>@<github-owner-id>/<repository-name>@<repository-id>:environm
 
 これにより、GitHub ActionsからSnowflakeへパスワードレスで接続できます。
 
-## Local Development
+ローカルとAirflowではSnowflake Key Pair認証を使用します。秘密鍵とパスフレーズはGit管理しません。
 
-よく使うローカルコマンドは、トップレベルの`Makefile`から実行できます。
+## Secret Management
 
-```bash
-make help
-make -n dbt-build DBT_TARGET=dev
-make dbt-build DBT_TARGET=dev
-make dbt-build DBT_SELECT=mart_daily_sales
-make elementary-report DBT_TARGET=dev
-```
+Gitへ登録しないものです。
 
-`make -n <target>`で実行予定のコマンドだけを確認できます。
+- Airbyte Client Secret
+- Snowflake秘密鍵
+- 秘密鍵のパスフレーズ
+- Airflow Fernet Key
+- `airflow/.env`
+- `.secrets/`
 
-### 1. PostgreSQLを起動
-
-```bash
-docker compose up -d
-```
-
-### 2. Python依存関係をインストール
+確認コマンドです。
 
 ```bash
-python -m pip install --upgrade pip
-python -m pip install -r requirements-dbt.txt
-python -m pip check
+git check-ignore -v airflow/.env
+git check-ignore -v .secrets/dbt/rsa_key.p8
+git ls-files airflow/.env .secrets
 ```
 
-### 3. dbt接続確認
-
-ローカルの`~/.dbt/profiles.yml`を設定したうえで実行します。
+誤って追跡している場合は、履歴や共有範囲を確認したうえでインデックスから外します。
 
 ```bash
-cd commerce_analytics
-dbt debug
+git rm --cached airflow/.env
+git rm --cached -r .secrets
 ```
 
-### 4. SQL lint
+## Troubleshooting Notes
 
-```bash
-sqlfluff lint models tests
-```
-
-### 5. dbt build
-
-```bash
-dbt build
-```
-
-## Production Verification
-
-CD完了後は、Snowflakeで次のオブジェクトを確認します。
-
-```sql
-show views in schema <snowflake-database>.<dbt-prod-schema>;
-show tables in schema <snowflake-database>.<dbt-prod-schema>;
-```
-
-想定されるView：
+### `airbyte_default`が見つからない
 
 ```text
-STG_POSTGRES__CUSTOMERS
-STG_POSTGRES__ORDERS
+The conn_id `airbyte_default` isn't defined
 ```
 
-想定されるTable：
+Airbyte APIへ接続する前に、Airflow Metadata DBからConnectionを取得できず失敗していました。Airflow Connection IDとして`airbyte_default`を登録します。
+
+### Fernet Keyが不正
 
 ```text
-DIM_CUSTOMERS
-FCT_ORDERS
-MART_DAILY_SALES
+Fernet key must be 32 url-safe base64-encoded bytes
 ```
 
-データ確認には、書き込み用の`<dbt-prod-role>`ではなく、必要に応じて読み取り専用ロールを使用します。
+正しい44文字のFernet Keyを設定し、全Airflowサービスで同じキーを使います。一度使用したキーを不用意に変更すると、旧キーで暗号化したConnectionを復号できなくなります。
+
+### dbt秘密鍵パスがホスト側パスだった
+
+Airflow Worker内でMac側の絶対パスを参照していたため、秘密鍵を読み込めませんでした。コンテナ内パス`/opt/airflow/secrets/dbt/rsa_key.p8`へ変更して解消しました。
+
+### SQLFluff実行時にdbt接続エラー
+
+SQLFluffはdbt templaterでprojectをコンパイルするため、Snowflake接続用の環境変数や秘密鍵が必要です。
+
+```text
+DBT_SNOWFLAKE_PRIVATE_KEY_PATH
+DBT_ENV_SECRET_SNOWFLAKE_KEY_PASSPHRASE
+```
+
+### RequestsDependencyWarning
+
+Snowflake Connector関連の依存警告が表示される場合があります。現在はSnowflake接続、dbt build、data testsまで成功しているため、処理を止めるエラーではありません。
+
+## Current Limitations
+
+- Airflow DAGは手動実行
+- Airbyteへの接続にポートフォワードが必要
+- Airbyte Connection IDはDAG内定数
+- 通知機能は未実装
+- BIツールは未接続
+- SQLFluffのローカル実行にはdbt認証設定が必要
+- Snowflake Connectorの依存警告が残っている
+
+## Next Steps
+
+優先度高:
+
+- Airflow DAGの定期実行
+- Airflow失敗通知
+- SQLFluff違反の完全解消
+- Airbyte Connection IDの環境変数化
+- Secretローテーション手順の整理
+
+優先度中:
+
+- dbt source freshness
+- Elementaryアラート
+- dbt snapshot
+- incremental model
+- BI接続
+- Snowflakeコスト監視
 
 ## Current Status
 
-### Completed
+完了済みです。
 
-- PostgreSQL構築
-- Airbyte Core構築
-- PostgreSQLからSnowflake RAW層への同期
-- XminによるINSERT / UPDATE検知
-- dbt Stagingモデル
-- dbt Martsモデル
-- dbt data tests
-- SQLFluff導入
-- GitHub Actions CI
-- GitHub Rulesetによる`main`保護
-- Snowflake OIDC認証
-- CI用User / Role / Schema分離
-- 本番用User / Role / Schema分離
-- GitHub Actions CD
-- 本番用Schemaへのデプロイ
-- CI/CDの一連の動作確認
+- [x] PostgreSQLのソーステーブル作成
+- [x] Go CLIによるデータ生成
+- [x] `batch_id`による冪等性
+- [x] Airbyte Source / Destination設定
+- [x] PostgreSQLからSnowflake RAWへの同期
+- [x] Airflow Docker Compose環境
+- [x] AirflowからAirbyte Sync起動
+- [x] Airflow Workerへのdbt導入
+- [x] Airflowからdbt build実行
+- [x] dbt Staging / Martモデル
+- [x] dbt data tests
+- [x] Elementary導入
+- [x] Go CLIからSnowflake MartまでのE2E確認
+- [x] GitHub Actions OIDC
+- [x] CI用Snowflakeユーザー・ロール・スキーマ
+- [x] 本番用Snowflakeユーザー・ロール・スキーマ
+- [x] SQLFluff CI
+- [x] dbt CI/CD
 
-### Next Steps
+未対応または今後の拡張候補です。
 
-- Go APIの実装
-- PostgreSQLへデータを追加する生成CLIの実装
-- Airbyteの定期同期
-- dbtの定期実行
-- dbt source freshnessの導入
-- Airbyte成功後にdbtを実行する依存制御
-- BIツールとの接続
-
-## Planned API
-
-Go APIでは次のエンドポイントを予定しています。
-
-```text
-POST /customers
-POST /orders
-POST /orders/{id}/cancel
-POST /customers/{id}/deactivate
-```
-
-データ生成CLIの実行イメージです。
-
-```bash
-go run ./cmd/generator \
-  --customers 1000 \
-  --orders 10000
-```
-
-## Planned Scheduling
-
-初期段階では、時刻ベースでの定期実行を検討しています。
-
-```text
-毎時00分: Airbyte sync
-毎時10分: dbt build
-```
-
-将来的には、次のような依存関係ベースの実行を目指します。
-
-```text
-Airbyte成功
-  ↓
-dbt source freshness
-  ↓
-dbt build
-  ↓
-dbt data tests
-  ↓
-BI更新
-```
-
-## Notes
-
-このリポジトリは、データエンジニアリングとデータ基盤運用を学ぶための個人検証プロジェクトです。
-
-本番運用を想定する場合は、監視、アラート、コスト管理、データ品質、バックアップ、障害復旧、個人情報管理、Secret管理などを追加で設計する必要があります。
+- [ ] SQLFluff違反の完全解消
+- [ ] Airflow定期実行
+- [ ] 失敗通知
+- [ ] BI接続
+- [ ] コスト監視

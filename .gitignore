@@ -8,3 +8,4 @@ commerce_analytics/logs/
 .venv-elementary/
 edr.log
 elementary_report.html
+.DS_Store
